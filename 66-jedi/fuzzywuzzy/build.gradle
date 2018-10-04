@@ -1,0 +1,9 @@
+plugins {
+    id 'java-library'
+}
+//ext.moduleName = "me.xdrop.fuzzywuzy"
+
+dependencies {
+    compile project(path: ':diffutils')
+}
+

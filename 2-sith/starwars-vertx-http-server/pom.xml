@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.zenika.handson.jigsaw</groupId>
+        <artifactId>devfest-nantes</artifactId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <artifactId>starwars.http.server</artifactId>
+    <packaging>jar</packaging>
+    <name>VertX http server</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>io.vertx</groupId>
+            <artifactId>vertx-web</artifactId>
+            <version>3.5.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.zenika.handson.jigsaw</groupId>
+            <artifactId>api-starwars</artifactId>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.zenika.handson.jigsaw</groupId>
+            <artifactId>api-starwars-local</artifactId>
+            <scope>runtime</scope>
+            <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.netflix.feign</groupId>
+            <artifactId>feign-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.netflix.feign</groupId>
+            <artifactId>feign-okhttp</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.netflix.feign</groupId>
+            <artifactId>feign-gson</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>1.6.0</version>
+                <configuration>
+                    <executable>java</executable>
+                    <mainClass>org.zenika.handson.jigsaw.http.Application</mainClass>
+
+                    <executable>java</executable>
+                    <arguments>
+                        <argument>--module-path</argument>
+                        <modulepath/>
+                        <argument>--module</argument>
+                        <argument>org.zenika.handson.jigsaw.http/org.zenika.handson.jigsaw.http.Application</argument>
+                    </arguments>
+                </configuration>
+
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+
+
+</project>
