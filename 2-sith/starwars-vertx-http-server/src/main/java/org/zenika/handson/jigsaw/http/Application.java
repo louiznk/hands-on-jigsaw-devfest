@@ -115,7 +115,7 @@ public class Application extends AbstractVerticle {
 
 
         router.route().handler(
-                StaticHandler.create("org/zenika/handsom/jigsaw/http/webapp", this.getClass().getModule().getClassLoader())
+                StaticHandler.create("org/zenika/handson/jigsaw/http/webapp", this.getClass().getModule().getClassLoader())
                         .setIndexPage("index.html")
                         .setCachingEnabled(dev)
                         .setFilesReadOnly(true)
