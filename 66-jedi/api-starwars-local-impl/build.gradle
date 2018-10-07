@@ -1,7 +1,8 @@
 plugins {
     id 'java-library'
 }
-//ext.moduleName = "org.zenika.handson.jigsaw.api.local.impl"
+// YOU KNOW IT YOUNG JEDI
+//ext.moduleName = "????"
 
 dependencies {
     api project(':api-starwars')

@@ -4,7 +4,8 @@ plugins {
     id 'application'
 }
 
-//ext.moduleName = "org.zenika.handson.jigsaw.http"
+// YOU KNOW IT YOUNG JEDI
+//ext.moduleName = "????"
 //mainClassName = "$moduleName/org.zenika.handson.jigsaw.http.Application"
 mainClassName = "org.zenika.handson.jigsaw.http.Application"
 
@@ -13,21 +14,18 @@ mainClassName = "org.zenika.handson.jigsaw.http.Application"
 //    inputs.property("moduleName", moduleName)
 //    doFirst {
 //        jvmArgs = [
-//                '--module-path', classpath.asPath,
-//                '-Dport=8080', '-Ddev=true',
-//                '--module', mainClassName // use module instead of classpath
+//                The Force will be with you. Always.
 //        ]
 //        classpath = files()
 //        copy {
 //            // can't access to file in resources directory => copy to java classes directory
-//            from 'src/main/resources'
-//            into "$buildDir/classes/java/main/"
+//            DO. OR DO NOT. THERE IS NO TRY.
 //        }
 //    }
 //}
 
 
-
+// Yoda said :
 //startScripts {
 //    inputs.property("moduleName", moduleName)
 //    doFirst {

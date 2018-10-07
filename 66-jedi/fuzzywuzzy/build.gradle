@@ -1,7 +1,8 @@
 plugins {
     id 'java-library'
 }
-//ext.moduleName = "me.xdrop.fuzzywuzy"
+// YOU KNOW IT YOUNG JEDI
+//ext.moduleName = "????"
 
 dependencies {
     compile project(path: ':diffutils')
