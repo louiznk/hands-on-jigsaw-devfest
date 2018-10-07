@@ -2,5 +2,4 @@ plugins {
     id 'java-library'
 }
 
-// YOU KNOW IT YOUNG JEDI
-//ext.moduleName = "????"
+ext.moduleName = "org.zenika.handson.jigsaw.api"

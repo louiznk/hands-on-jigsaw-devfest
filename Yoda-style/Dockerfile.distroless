@@ -1,0 +1,54 @@
+FROM debian:buster-slim
+
+# Default to UTF-8 file.encoding
+ENV LANG C.UTF-8
+
+# There might be newer builds, but not all are published (for apline) at: http://jdk.java.net/11/
+
+ENV JDK_ARCHIVE="openjdk-11_linux-x64_bin.tar.gz"
+ENV JAVA_HOME="/jdk-11"
+
+RUN echo "Downloading ${JDK_ARCHIVE}"
+
+RUN apt-get -m update && apt-get install -y wget
+RUN wget https://download.java.net/java/ga/jdk11/${JDK_ARCHIVE}
+
+RUN echo "Extract JDK"
+RUN tar -xzf ${JDK_ARCHIVE} -C /
+
+ENV PATH=$PATH:${JAVA_HOME}/bin
+
+ENV JAVA_VERSION 11-ga
+
+RUN echo $PATH
+
+WORKDIR /build
+
+COPY gradle /build/gradle
+COPY gradlew /build/
+COPY settings.gradle /build/
+COPY build.gradle /build/
+
+COPY api-starwars /build/api-starwars
+COPY api-starwars-local-impl /build/api-starwars-local-impl
+COPY starwars-http-server /build/starwars-http-server
+COPY diffutils /build/diffutils
+COPY fuzzywuzzy /build/fuzzywuzzy
+
+RUN ./gradlew --no-daemon clean jar
+
+RUN jlink --module-path $JAVA_HOME/jmods:/build/api-starwars/build/libs/api-starwars.jar:/build/api-starwars-local-impl/build/libs/api-starwars-local-impl.jar:/build/starwars-http-server/build/libs/starwars-http-server.jar:/build/diffutils/build/libs/diffutils.jar:/build/fuzzywuzzy/build/libs/fuzzywuzzy.jar   \
+--add-modules org.zenika.handson.jigsaw.api.local.impl,org.zenika.handson.jigsaw.http \
+--output /build/starwarsjre \
+--compress=2 --vm=server --strip-debug --no-header-files --no-man-pages
+
+FROM gcr.io/distroless/base
+ENV LANG=C.UTF-8
+LABEL maintainer="louis.tournayre@zenika.com, mathieu.mure@zenika.com"
+LABEL authors="louis.tournayre@zenika.com, mathieu.mure@zenika.com"
+LABEL version="1.0"
+WORKDIR /starwarsjre
+COPY --from=0  /usr/lib/x86_64-linux-gnu/libz.so.* /usr/lib/x86_64-linux-gnu/
+COPY --from=0 /build/starwarsjre /starwarsjre
+EXPOSE 8080
+ENTRYPOINT ["/starwarsjre/bin/java", "-Ddev=false", "-Dport=8080", "-Xms128m", "-Xmx128m", "-m" , "org.zenika.handson.jigsaw.http/org.zenika.handson.jigsaw.http.Application"]

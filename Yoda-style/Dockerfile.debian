@@ -1,0 +1,35 @@
+FROM openjdk:11-jdk-oracle
+
+# Default to UTF-8 file.encoding
+ENV LANG C.UTF-8
+
+WORKDIR /build
+
+COPY gradle /build/gradle
+COPY gradlew /build/
+COPY settings.gradle /build/
+COPY build.gradle /build/
+
+COPY api-starwars /build/api-starwars
+COPY api-starwars-local-impl /build/api-starwars-local-impl
+COPY starwars-http-server /build/starwars-http-server
+COPY diffutils /build/diffutils
+COPY fuzzywuzzy /build/fuzzywuzzy
+
+RUN ./gradlew --no-daemon clean jar
+
+RUN jlink --module-path $JAVA_HOME/jmods:/build/api-starwars/build/libs/api-starwars.jar:/build/api-starwars-local-impl/build/libs/api-starwars-local-impl.jar:/build/starwars-http-server/build/libs/starwars-http-server.jar:/build/diffutils/build/libs/diffutils.jar:/build/fuzzywuzzy/build/libs/fuzzywuzzy.jar   \
+--add-modules org.zenika.handson.jigsaw.api.local.impl,org.zenika.handson.jigsaw.http \
+--output /build/starwarsjre \
+--compress=2 --vm=server --strip-debug --no-header-files --no-man-pages
+
+
+FROM debian:sid-slim
+ENV LANG=C.UTF-8
+LABEL maintainer="louis.tournayre@zenika.com, mathieu.mure@zenika.com"
+LABEL authors="louis.tournayre@zenika.com, mathieu.mure@zenika.com"
+LABEL version="1.0"
+WORKDIR /starwarsjre
+COPY --from=0 /build/starwarsjre /starwarsjre
+EXPOSE 8080
+ENTRYPOINT ["/starwarsjre/bin/java", "-Ddev=false", "-Dport=8080", "-Xms128m", "-Xmx128m", "-m" , "org.zenika.handson.jigsaw.http/org.zenika.handson.jigsaw.http.Application"]

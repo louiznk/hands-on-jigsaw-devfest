@@ -31,35 +31,41 @@ subprojects {
         }
 
 
-//        compileJava {
-//            doFirst {
-//                options.compilerArgs = [
-//                        A JEDI KNOW THAT
-//                ]
-//                classpath = files()
-//            }
-//        }
-//
-//        javadoc {
-//            inputs.property("moduleName", moduleName)
-//            doFirst {
-//                  // Yoda said :
-//                  options.addStringOption('-module-path', classpath.asPath)
-//            }
-//        }
-//
-//
-//
-//
-//        compileTestJava {
-//            inputs.property("moduleName", moduleName)
-//            doFirst {
-//                options.compilerArgs = [
-//                        A JEDI KNOW THAT TOO
-//                ]
-//                classpath = files()
-//            }
-//        }
+        compileJava {
+            doFirst {
+                options.compilerArgs = [
+                        '--module-path', classpath.asPath,
+                ]
+                classpath = files()
+            }
+        }
+
+        javadoc {
+            inputs.property("moduleName", moduleName)
+            doFirst {
+                options.addStringOption('-module-path', classpath.asPath)
+            }
+        }
+
+
+
+
+        compileTestJava {
+            inputs.property("moduleName", moduleName)
+            doFirst {
+                options.compilerArgs = [
+                        '--module-path', classpath.asPath,
+                        '--add-modules', 'org.junit.jupiter.api',
+                        '--add-modules', 'feign.core',
+                        '--add-reads', "$moduleName=org.junit.jupiter.api",
+                        '--add-reads', "$moduleName=org.junit.platform.commons",
+                        '--add-reads', "$moduleName=feign.core",
+                        '--add-reads', "$moduleName=feign.gson",
+                        '--patch-module', "$moduleName=" + files(sourceSets.test.java.srcDirs).asPath,
+                ]
+                classpath = files()
+            }
+        }
 
 
 
@@ -88,20 +94,29 @@ subprojects {
             }
 
 
-//            inputs.property("moduleName", moduleName)
-//            doFirst {
-//                // can't access to file in resources directory => copy to java classes directory
-//                copy {
-//                      A JEDI KNOW WHAT YOU HAVE TO COPY AND WHY
-//                }
-//
-//                jvmArgs = [
-//                        //'--show-module-resolution',
-//                        A JEDI KNOW THAT, DON'T ASK THIS TO CHUCK NORRIS
-//                ]
-//                classpath = files()
-//
-//            }
+            inputs.property("moduleName", moduleName)
+            doFirst {
+                // can't access to file in resources directory => copy to java classes directory
+                copy {
+                    from "$projectDir/src/main/resources"
+                    into "$buildDir/classes/java/main/"
+                }
+
+                jvmArgs = [
+                        //'--show-module-resolution',
+                        '--module-path', classpath.asPath,
+                        '--add-modules', 'ALL-MODULE-PATH',
+                        '--add-reads', "$moduleName=org.junit.jupiter.api",
+                        '--add-reads', "$moduleName=org.junit.platform.commons",
+                        '--add-reads', "$moduleName=feign.core",
+                        '--add-reads', "$moduleName=feign.gson",
+                        '--add-exports', "$moduleName/$moduleName=org.junit.jupiter.api",
+                        '--add-exports', "$moduleName/$moduleName=org.junit.platform.commons",
+                        '--patch-module', "$moduleName=" + files(sourceSets.test.java.outputDir).asPath,
+                ]
+                classpath = files()
+
+            }
         }
 
     }
