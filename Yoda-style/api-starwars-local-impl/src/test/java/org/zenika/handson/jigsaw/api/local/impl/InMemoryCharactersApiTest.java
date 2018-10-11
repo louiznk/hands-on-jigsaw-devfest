@@ -56,10 +56,10 @@ public class InMemoryCharactersApiTest {
     }
 
     @Test
-    @DisplayName("Should have 620 characters")
+    @DisplayName("Should have 621 characters")
     public void shouldFindAllCharacters() {
         List<StarWarsCharacter> characters = api.findAll();
-        assertEquals(characters.size(), 620, "I should find 620 characters");
+        assertEquals(characters.size(), 621, "I should find 621 characters");
 
     }
 
