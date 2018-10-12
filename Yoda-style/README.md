@@ -8,15 +8,9 @@
    ##     #######  ########  ##     ## 
 ```
 
-[Voir aussi](fixme:url)
+[Episode V - Yoda contre-attaque](https://mathieumure.github.io/devfest-nantes-jigsaw-docs/EPISODE_5.html)
 
-# Jlink
-
-La maitrise de Jlink est nécessaire à tous maîtres Jedi.
-
-Windu vous a laissé ces indications.
-
-Avec BASE_DIR = le répertoire de travail de votre projet.
+Rappelez vous des conseils de maitre Yoda :
 
 ## Module Path (--module-path )
 * Les modules du JDK ${JAVA_HOME}/jmods
@@ -33,16 +27,3 @@ Avec BASE_DIR = le répertoire de travail de votre projet.
 
 ## Le lanceur (--launcher)
 org.zenika.handson.jigsaw.http/org.zenika.handson.jigsaw.http.Application
-
-
-# Image Docker
-
-Pour parvenir au rand de grand maitre et approcher à la sagesse de Yoda il faut maitriser le pouvoir de contenarisation.
-Vous devez créer une image minimaliste en utilisant Jlink dans une première phase de compilation
-
-Pour cela appuyer vous sur les multi-build de docker avec comme images :
-
- * `openjdk:11-jdk-oracle` pour le build
- * `debian:sid-slim` pour l'image final
- 
-TIPS : lancer le build des jar depuis l'image 0 ainsi ./gradlew --no-daemon clean jar

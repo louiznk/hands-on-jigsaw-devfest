@@ -3,7 +3,7 @@ Vous devez créer les fichiers qui vont décrirent les différents modules.
 Il s'agit des fichiers module-info.java qui devront être à la racine des sources de chaque projets.
 Par exemple pour le projet `api-starwars` le fichier `module-info.java` sera dans `api-starwars\src\main\java`
 
-Comme expliquer dans les [TIPS](fixme:url) voici les principales options que l'on peut retrouver dans un module :
+Comme expliqué dans les [TIPS](https://mathieumure.github.io/devfest-nantes-jigsaw-docs/TIPS.html) voici les principales options que l'on peut retrouver dans un module :
 
 ```java
 module nom.unique.de.mon.module {
@@ -21,7 +21,7 @@ module nom.unique.de.mon.module {
 }
 ```
 
-Créer tel que décrit dans [Episode III - La revanche des Sith Maven](fixme:url)dans l'ordre des dépendances les descripteurs des modules :
+Créer tel que décrit dans [Episode III - La revanche des Sith Maven](https://mathieumure.github.io/devfest-nantes-jigsaw-docs/EPISODE_3.html) dans l'ordre des dépendances les descripteurs des modules :
 
  * api-starwars
  * diffutils
