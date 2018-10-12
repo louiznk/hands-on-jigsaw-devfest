@@ -60,16 +60,7 @@
                 <configuration>
                     <executable>java</executable>
                     <mainClass>org.zenika.handson.jigsaw.http.Application</mainClass>
-
-                    <executable>java</executable>
-                    <arguments>
-                        <argument>--module-path</argument>
-                        <modulepath/>
-                        <argument>--module</argument>
-                        <argument>org.zenika.handson.jigsaw.http/org.zenika.handson.jigsaw.http.Application</argument>
-                    </arguments>
                 </configuration>
-
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
