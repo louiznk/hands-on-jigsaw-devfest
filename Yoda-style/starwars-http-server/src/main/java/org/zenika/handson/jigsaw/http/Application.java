@@ -128,6 +128,77 @@ public class Application {
         }
     }
 
+    private void writeToOuputStream(HttpExchange exchange, OutputStream os, InputStream in, Optional<ContentType> contentType) throws IOException {
+        final Headers responseHeaders = exchange.getResponseHeaders();
+        contentType.ifPresent(type -> responseHeaders.add("Content-Type", type.mimeType));
+        responseHeaders.putAll(getCacheHeaders());
+
+        final boolean acceptGzip = Optional.ofNullable(exchange.getRequestHeaders().get("Accept-Encoding"))
+                .map(e -> e.stream().anyMatch(encoding -> encoding.contains("gzip")))
+                .orElse(false);
+
+        if (acceptGzip && contentType.map(content -> content.compressible).orElse(false)) {
+            responseHeaders.add("Content-Encoding", "gzip");
+            exchange.sendResponseHeaders(200, 0);
+            try (GZIPOutputStream compressOS = new GZIPOutputStream(os, 1024)) {
+                byte[] buffer=new byte[1024];
+                int len;
+                while((len =in.read(buffer)) !=-1){
+                    compressOS.write(buffer, 0, len);
+                }
+            }
+
+        } else {
+            exchange.sendResponseHeaders(200, 0);
+            in.transferTo(os);
+        }
+    }
+
+    private ContentType getContentType(String extension) {
+        switch (extension) {
+            case "avi":
+                return new ContentType("video/avi", false);
+            case "bm":
+            case "bmp":
+                return new ContentType("image/bmp", false);
+            case "htm":
+            case "html":
+                return new ContentType("text/html", true);
+            case "css":
+                return new ContentType("text/css", true);
+            case "ico":
+                return new ContentType("image/x-icon", false);
+            case "gif":
+                return new ContentType("image/gif", false);
+            case "jpeg":
+            case "jpg":
+                return new ContentType("image/jpeg", false);
+            case "js":
+                return new ContentType("application/javascript", true);
+            case "json":
+                return new ContentType("application/json", true);
+            case "mov":
+                return new ContentType("video/quicktime", false);
+            case "mp2":
+                return new ContentType("audio/mpeg", false);
+            case "mp3":
+                return new ContentType("audio/mpeg3", false);
+            case "mpg":
+            case "mpeg":
+                return new ContentType("audio/mpeg", false);
+            case "ogg":
+                return new ContentType("audio/ogg", false);
+            case "png":
+                return new ContentType("image/png", false);
+            case "svg":
+                return new ContentType("image/svg+xml", false);
+            case "znk":
+                return new ContentType("application/zenika", false);
+            default:
+                return new ContentType(extension, false);
+        }
+    }
+
     private enum HTTP_ERROR {
         BAD_REQUEST(400, "Bad Request"),
         NOT_FOUND(404, "Not Found"),
@@ -182,7 +253,6 @@ public class Application {
         }
 
 
-
         private void httpResponse(HttpExchange exchange, OutputStream os, String path, URL resource) throws IOException {
             assert resource != null;
             try (InputStream in = resource.openStream()) {
@@ -201,84 +271,12 @@ public class Application {
         }
 
 
-
-    }
-
-    private void writeToOuputStream(HttpExchange exchange, OutputStream os, InputStream in, Optional<ContentType> contentType) throws IOException {
-        final Headers responseHeaders = exchange.getResponseHeaders();
-        contentType.ifPresent(type -> responseHeaders.add("Content-Type", type.mimeType));
-        responseHeaders.putAll(getCacheHeaders());
-
-        boolean acceptGzip = Optional.ofNullable(exchange.getRequestHeaders().get("Accept-Encoding"))
-                .map(e -> e.stream().anyMatch(encoding -> encoding.contains("gzip")))
-                .orElse(false);
-
-        if (acceptGzip && contentType.map(content -> content.compressible).orElse(false)) {
-           // only gzip first
-            responseHeaders.add("Content-Encoding", "gzip");
-            exchange.sendResponseHeaders(200, 0);
-            GZIPOutputStream compressOS = new GZIPOutputStream(os, 1024);
-            byte[] buffer = new byte[1024];
-            int len;
-            while((len=in.read(buffer)) != -1){
-                compressOS.write(buffer, 0, len);
-            }
-            compressOS.close();
-
-        } else {
-            exchange.sendResponseHeaders(200, 0);
-            in.transferTo(os);
-        }
-    }
-
-    private ContentType getContentType(String extension) {
-        switch (extension) {
-            case "avi":
-                return new ContentType("video/avi", false);
-            case "bm":
-            case "bmp":
-                return new ContentType("image/bmp", false);
-            case "htm":
-            case "html":
-                return new ContentType("text/html", true);
-            case "css":
-                return new ContentType("text/css", true);
-            case "ico":
-                return new ContentType("image/x-icon", false);
-            case "gif":
-                return new ContentType("image/gif", false);
-            case "jpeg":
-            case "jpg":
-                return new ContentType("image/jpeg", false);
-            case "js":
-                return new ContentType("application/javascript", true);
-            case "json":
-                return new ContentType("application/json", true);
-            case "mov":
-                return new ContentType("video/quicktime", false);
-            case "mp2":
-                return new ContentType("audio/mpeg", false);
-            case "mp3":
-                return new ContentType("audio/mpeg3", false);
-            case "mpg":
-            case "mpeg":
-                return new ContentType("audio/mpeg", false);
-            case "ogg":
-                return new ContentType("audio/ogg", false);
-            case "png":
-                return new ContentType("image/png", false);
-            case "svg":
-                return new ContentType("image/svg+xml", false);
-            case "znk":
-                return new ContentType("application/zenika", false);
-            default:
-                return new ContentType(extension, false);
-        }
     }
 
     private class ContentType {
         final String mimeType;
         final boolean compressible;
+
         public ContentType(String type, boolean compressable) {
             this.mimeType = type;
             this.compressible = compressable;
@@ -319,7 +317,7 @@ public class Application {
                     final MethodHandle mhModules = lookup.findVirtual(moduleLayer.getClass(), "modules", MethodType.methodType(Set.class));
                     final Set<?> modules = (Set) mhModules.invoke(moduleLayer);
 
-                    final Class<?>  moduleClazz = lookup.findClass("java.lang.Module");
+                    final Class<?> moduleClazz = lookup.findClass("java.lang.Module");
                     final MethodHandle mhGetModule = lookup.findVirtual(moduleClazz.getClass(), "getModule", MethodType.methodType(moduleClazz));
                     final Object module = mhGetModule.invoke(Application.this.getClass());
 
@@ -374,17 +372,16 @@ public class Application {
         }
 
         private void handleImageOfCharacterById(HttpExchange exchange, String path) throws IOException {
-            final String strId = path.substring(URI_CHARACTERS_IMAGES.length());
+            final String id = path.substring(URI_CHARACTERS_IMAGES.length());
 
             final OutputStream os = exchange.getResponseBody();
             try (os) {
-                final String id = strId;
                 final var character = charactersApi.find(id);
                 if (character.isPresent()) {
                     StarWarsCharacter marvelCharacter = character.get();
                     final URL image = marvelCharacter.getImage();
                     if (null == image) {
-                        logger.info("The image of character " + strId + " was not found");
+                        logger.info("The image of character " + id + " was not found");
                         exchange.sendResponseHeaders(HTTP_ERROR.NOT_FOUND.errorCode, HTTP_ERROR.NOT_FOUND.jsonMessageToBytes.length);
                         os.write(HTTP_ERROR.NOT_FOUND.jsonMessageToBytes);
                     } else {
@@ -406,10 +403,6 @@ public class Application {
                     exchange.sendResponseHeaders(HTTP_ERROR.NOT_FOUND.errorCode, HTTP_ERROR.NOT_FOUND.jsonMessageToBytes.length);
                     os.write(HTTP_ERROR.NOT_FOUND.jsonMessageToBytes);
                 }
-            } catch (NumberFormatException nf) {
-                logger.info("Incorrect search id (not a number) : " + strId);
-                exchange.sendResponseHeaders(HTTP_ERROR.BAD_REQUEST.errorCode, HTTP_ERROR.BAD_REQUEST.jsonMessageToBytes.length);
-                os.write(HTTP_ERROR.BAD_REQUEST.jsonMessageToBytes);
             } finally {
                 exchange.close();
             }
@@ -420,21 +413,18 @@ public class Application {
 
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            {
-                final String method = exchange.getRequestMethod();
-                final String path = exchange.getRequestURI().getPath();
-                final String query = exchange.getRequestURI().getQuery(); // /...
-                logger.fine("RECEIVE URL " + path);
-                if (!method.equals("GET")) {
-                    logger.info(method + " not supported");
-                } else if (URI_CHARACTERS.equals(path) || URI_CHARACTERS_WITH_SLASH.equals(path)) {
-                    handleCharacters(exchange, query);
-                } else if (path.startsWith(URI_CHARACTERS_WITH_SLASH)) {
-                    handleCharacterById(exchange, path);
-                }
 
+            final String method = exchange.getRequestMethod();
+            final String path = exchange.getRequestURI().getPath();
+            final String query = exchange.getRequestURI().getQuery(); // /...
+            logger.fine("RECEIVE URL " + path);
+            if (!method.equals("GET")) {
+                logger.info(method + " not supported");
+            } else if (URI_CHARACTERS.equals(path) || URI_CHARACTERS_WITH_SLASH.equals(path)) {
+                handleCharacters(exchange, query);
+            } else if (path.startsWith(URI_CHARACTERS_WITH_SLASH)) {
+                handleCharacterById(exchange, path);
             }
-
         }
 
         private void handleCharacters(HttpExchange exchange, String query) throws IOException {
@@ -452,7 +442,6 @@ public class Application {
                     .map(n -> charactersApi.fuzzySearchByName(n, score.orElse(100)))
                     .orElseGet(charactersApi::findAll);
 
-
             try (final OutputStream os = exchange.getResponseBody()) {
                 if (characters.isEmpty()) {
                     exchange.getResponseHeaders().add("Content-Type", "application/json");
@@ -468,11 +457,10 @@ public class Application {
 
 
         private void handleCharacterById(HttpExchange exchange, String path) throws IOException {
-            final String strId = path.substring(URI_CHARACTERS_WITH_SLASH.length());
+            final String id = path.substring(URI_CHARACTERS_WITH_SLASH.length());
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             final OutputStream os = exchange.getResponseBody();
             try (os) {
-                final String id = strId;
                 final Optional<StarWarsCharacter> character = charactersApi.find(id);
 
                 if (character.isPresent()) {
@@ -482,10 +470,6 @@ public class Application {
                     os.write(HTTP_ERROR.NOT_FOUND.jsonMessageToBytes);
                 }
 
-            } catch (NumberFormatException nf) {
-                logger.info("Incorrect search id (not a number) : " + strId);
-                exchange.sendResponseHeaders(HTTP_ERROR.BAD_REQUEST.errorCode, HTTP_ERROR.BAD_REQUEST.jsonMessageToBytes.length);
-                os.write(HTTP_ERROR.BAD_REQUEST.jsonMessageToBytes);
             } finally {
                 exchange.close();
             }
