@@ -8,10 +8,7 @@ import com.sun.net.httpserver.HttpServer;
 import org.zenika.handson.jigsaw.api.CharactersApi;
 import org.zenika.handson.jigsaw.api.StarWarsCharacter;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
+import java.io.*;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodType;
@@ -25,6 +22,7 @@ import java.util.concurrent.Executors;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
+import java.util.zip.GZIPOutputStream;
 
 import static org.zenika.handson.jigsaw.api.CharactersApi.startWarsCharacterToJson;
 import static org.zenika.handson.jigsaw.api.CharactersApi.startWarsCharactersToJson;
@@ -183,25 +181,18 @@ public class Application {
             }
         }
 
+
+
         private void httpResponse(HttpExchange exchange, OutputStream os, String path, URL resource) throws IOException {
             assert resource != null;
             try (InputStream in = resource.openStream()) {
-                final byte[] response = in.readAllBytes();
-
                 final String[] splitPath = path.split("/");
                 final String fileName = splitPath[splitPath.length - 1];
                 final String[] splitName = fileName.split("\\.");
                 final Optional<String> extension = splitName.length > 0 ? Optional.of(splitName[splitName.length - 1]) : Optional.empty();
+                final Optional<ContentType> contentType = extension.map(Application.this::getContentType);
+                writeToOuputStream(exchange, os, in, contentType);
 
-                final Headers responseHeaders = exchange.getResponseHeaders();
-                extension.ifPresent(e -> responseHeaders.add("Content-Type", getContentType(e)));
-                responseHeaders.add("Content-Length", String.valueOf(response.length));
-
-                responseHeaders.putAll(getCacheHeaders());
-
-
-                exchange.sendResponseHeaders(200, response.length);
-                os.write(response);
             } catch (IOException ex) {
                 logger.log(Level.WARNING, ex.getMessage(), ex);
                 exchange.sendResponseHeaders(HTTP_ERROR.INTERNAL_SERVER_ERROR.errorCode, HTTP_ERROR.INTERNAL_SERVER_ERROR.errorMessageToBytes.length);
@@ -209,67 +200,102 @@ public class Application {
             }
         }
 
-        private String getContentType(String extension) {
-            switch (extension) {
-                case "avi":
-                    return "video/avi";
-                case "bm":
-                case "bmp":
-                    return "image/bmp";
-                case "htm":
-                case "html":
-                    return "text/html";
-                case "css":
-                    return "text/css";
-                case "ico":
-                    return "image/x-icon";
-                case "gif":
-                    return "image/gif";
-                case "jpeg":
-                case "jpg":
-                    return "image/jpeg";
-                case "mov":
-                    return "video/quicktime";
-                case "mp2":
-                    return "audio/mpeg";
-                case "mp3":
-                    return "audio/mpeg3";
-                case "mpg":
-                case "mpeg":
-                    return "audio/mpeg";
-                case "ogg":
-                    return "audio/ogg";
-                case "png":
-                    return "image/png";
-                case "svg":
-                    return "image/svg+xml";
-                case "js":
-                    return "application/javascript";
-                case "json":
-                    return "application/json";
-                case "znk":
-                    return "application/zenika";
-                default:
-                    return extension;
+
+
+    }
+
+    private void writeToOuputStream(HttpExchange exchange, OutputStream os, InputStream in, Optional<ContentType> contentType) throws IOException {
+        final Headers responseHeaders = exchange.getResponseHeaders();
+        contentType.ifPresent(type -> responseHeaders.add("Content-Type", type.mimeType));
+        responseHeaders.putAll(getCacheHeaders());
+
+        boolean acceptGzip = Optional.ofNullable(exchange.getRequestHeaders().get("Accept-Encoding"))
+                .map(e -> e.stream().anyMatch(encoding -> encoding.contains("gzip")))
+                .orElse(false);
+
+        if (acceptGzip && contentType.map(content -> content.compressible).orElse(false)) {
+           // only gzip first
+            responseHeaders.add("Content-Encoding", "gzip");
+            exchange.sendResponseHeaders(200, 0);
+            GZIPOutputStream compressOS = new GZIPOutputStream(os, 1024);
+            byte[] buffer = new byte[1024];
+            int len;
+            while((len=in.read(buffer)) != -1){
+                compressOS.write(buffer, 0, len);
             }
+            compressOS.close();
+
+        } else {
+            exchange.sendResponseHeaders(200, 0);
+            in.transferTo(os);
         }
     }
+
+    private ContentType getContentType(String extension) {
+        switch (extension) {
+            case "avi":
+                return new ContentType("video/avi", false);
+            case "bm":
+            case "bmp":
+                return new ContentType("image/bmp", false);
+            case "htm":
+            case "html":
+                return new ContentType("text/html", true);
+            case "css":
+                return new ContentType("text/css", true);
+            case "ico":
+                return new ContentType("image/x-icon", false);
+            case "gif":
+                return new ContentType("image/gif", false);
+            case "jpeg":
+            case "jpg":
+                return new ContentType("image/jpeg", false);
+            case "js":
+                return new ContentType("application/javascript", true);
+            case "json":
+                return new ContentType("application/json", true);
+            case "mov":
+                return new ContentType("video/quicktime", false);
+            case "mp2":
+                return new ContentType("audio/mpeg", false);
+            case "mp3":
+                return new ContentType("audio/mpeg3", false);
+            case "mpg":
+            case "mpeg":
+                return new ContentType("audio/mpeg", false);
+            case "ogg":
+                return new ContentType("audio/ogg", false);
+            case "png":
+                return new ContentType("image/png", false);
+            case "svg":
+                return new ContentType("image/svg+xml", false);
+            case "znk":
+                return new ContentType("application/zenika", false);
+            default:
+                return new ContentType(extension, false);
+        }
+    }
+
+    private class ContentType {
+        final String mimeType;
+        final boolean compressible;
+        public ContentType(String type, boolean compressable) {
+            this.mimeType = type;
+            this.compressible = compressable;
+        }
+
+    }
+
 
     private class InfoHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
             try (final OutputStream os = exchange.getResponseBody()) {
-
                 if (null == info) {
                     info = getJvmInfo();
                 }
 
-                byte[] response = info.getBytes(UTF8_CHARSET);
-                exchange.getResponseHeaders().add("Content-Type", "application/json");
-                exchange.getResponseHeaders().add("Content-Length", String.valueOf(response.length));
-                exchange.sendResponseHeaders(200, response.length);
-                os.write(response);
-
+                writeToOuputStream(exchange, os, new ByteArrayInputStream(info.getBytes(UTF8_CHARSET)), Optional.of((getContentType("json"))));
             } finally {
                 exchange.close();
             }
@@ -352,7 +378,6 @@ public class Application {
 
             final OutputStream os = exchange.getResponseBody();
             try (os) {
-
                 final String id = strId;
                 final var character = charactersApi.find(id);
                 if (character.isPresent()) {
@@ -388,7 +413,6 @@ public class Application {
             } finally {
                 exchange.close();
             }
-
         }
     }
 
@@ -428,16 +452,14 @@ public class Application {
                     .map(n -> charactersApi.fuzzySearchByName(n, score.orElse(100)))
                     .orElseGet(charactersApi::findAll);
 
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
+
             try (final OutputStream os = exchange.getResponseBody()) {
                 if (characters.isEmpty()) {
+                    exchange.getResponseHeaders().add("Content-Type", "application/json");
                     exchange.sendResponseHeaders(HTTP_ERROR.NOT_FOUND.errorCode, HTTP_ERROR.NOT_FOUND.jsonMessageToBytes.length);
                     os.write(HTTP_ERROR.NOT_FOUND.jsonMessageToBytes);
                 } else {
-                    final byte[] response = startWarsCharactersToJson(characters).getBytes(UTF8_CHARSET);
-                    exchange.getResponseHeaders().add("Content-Length", String.valueOf(response.length));
-                    exchange.sendResponseHeaders(200, response.length);
-                    os.write(response);
+                    writeToOuputStream(exchange, os, new ByteArrayInputStream(startWarsCharactersToJson(characters).getBytes(UTF8_CHARSET)), Optional.of((getContentType("json"))));
                 }
             } finally {
                 exchange.close();
@@ -450,15 +472,11 @@ public class Application {
             exchange.getResponseHeaders().add("Content-Type", "application/json");
             final OutputStream os = exchange.getResponseBody();
             try (os) {
-
                 final String id = strId;
                 final Optional<StarWarsCharacter> character = charactersApi.find(id);
 
                 if (character.isPresent()) {
-                    final byte[] response = startWarsCharacterToJson(character.get()).getBytes(UTF8_CHARSET);
-                    exchange.sendResponseHeaders(200, response.length);
-                    exchange.getResponseHeaders().add("Content-Length", String.valueOf(response.length));
-                    os.write(response);
+                    writeToOuputStream(exchange, os, new ByteArrayInputStream(startWarsCharacterToJson(character.get()).getBytes(UTF8_CHARSET)), Optional.of((getContentType("json"))));
                 } else {
                     exchange.sendResponseHeaders(HTTP_ERROR.NOT_FOUND.errorCode, HTTP_ERROR.NOT_FOUND.jsonMessageToBytes.length);
                     os.write(HTTP_ERROR.NOT_FOUND.jsonMessageToBytes);
