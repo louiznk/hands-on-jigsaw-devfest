@@ -51,7 +51,7 @@ dependencies {
 
     implementation project(':api-starwars')
 
-    compile 'io.vertx:vertx-web:3.5.3'
+    compile 'io.vertx:vertx-web:3.5.4'
     
     runtimeOnly project(':api-starwars-local-impl')
 }
